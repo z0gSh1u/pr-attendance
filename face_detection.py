@@ -6,9 +6,9 @@
 # ================================
 
 # 参数
-SCALE_FACTOR = 1.15  # 以多大的比率变换窗口大小
+SCALE_FACTOR = 1.1  # 以多大的比率变换窗口大小
 MIN_NEIGHBORS = 3  # 多少次连续出现才确信是脸
-MIN_SIZE = (8, 8)  # 最小脸尺寸
+MIN_SIZE = (95, 95)  # 最小脸尺寸
 
 import cv2
 
@@ -43,4 +43,4 @@ def detect_face_for_manager(img, rect_width=3):
     img = cv2.rectangle(img, (x, y), (x + w, y + h), (255, 0, 0), rect_width)
     cut = gray[y:y + h, x:x + w]
     detected.append(cut)
-  return (img, howmany, detected)
+  return (img, howmany, detected, faces)

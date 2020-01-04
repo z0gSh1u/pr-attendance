@@ -51,7 +51,7 @@ def capture_file(path: str):
   img = cv2.imread(path)
   (res, howmany, detected) = FD.detect_face_for_manager(img, int(img.shape[0] / 80) + 1)
   label_faceCount.config(text='当前人脸数：' + str(howmany))
-  res = cv2.resize(res, (320, int(320. / res.shape[1] * res.shape[0])))
+  res = cv2.resize(res, (640, int(640. / res.shape[1] * res.shape[0])))
   res = cv2.cvtColor(res, cv2.COLOR_BGR2RGBA)
   res_pil = PIL.Image.fromarray(res)
   res_tk = ImageTk.PhotoImage(image=res_pil)
@@ -71,15 +71,17 @@ def save_sample():
     return
   face_gray = cv2.resize(detected[0], TARGET_SIZE)
   name = input_label.get()
-  filename = str(int(time()))
-  json_fp = open('./face/label.json', 'r', encoding='utf-8')
-  dataset_json = json.load(json_fp)
-  json_fp.close()
-  json_fp = open('./face/label.json', 'w', encoding='utf-8')
-  dataset_json['faces'].append({'file': filename + '.png', 'name': name})
-  json.dump(dataset_json, json_fp, indent=2)
-  json_fp.close()
-  save_path = './face/square_gray/' + filename + '.png'
+  fp = open('./dataset/manager.json', 'r')
+  json_content = json.load(fp)
+  fp.close()
+  total = int(json_content['total'])
+  total += 1
+  json_content['total'] = total
+  fp = open('./dataset/manager.json', 'w')
+  json.dump(json_content, fp)
+  fp.close()
+  filename = str(total) + '-' + name
+  save_path = './dataset/train/' + filename + '.png'
   cv2.imwrite(save_path, face_gray)
   messagebox.showinfo('录入成功', '录入成功！')
 

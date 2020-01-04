@@ -1,56 +1,98 @@
 # coding: utf-8
 
 # ================================
-# 人脸识别主程序
+# 考勤系统主程序
 # SEU-PR // R.YY & Z.HF & Z.X
 # ================================
 
-import face_recognition as FR
+
 import cv2
-import time
-import os
-import pickle
+import PIL.Image
+from PIL import ImageTk
+from tkinter import *
+from tkinter import filedialog, messagebox
+import json
+import face_detection as FD
+from time import time
+from FaceNet import FaceNetWrap, convert_gray_to_bgr_use_img, IGNORE_THRESHOLD
 
-import matplotlib.pyplot as plt
-
-N_FEATURE = 100
-
-lower_dimension_raw_mat = None
-transform_base = None
+detected = []
+helper: FaceNetWrap = None
+result = []
 
 
-# 把47个样本拉伸成47X(100X100)的数据矩阵，即47行，10000列，图像按列展开，列间首尾相接
-def trian():
-  # 按列展开一个矩阵
-  def flatten_mat_by_col(mat):
-    res = []
-    for i in range(mat.shape[1]):
-      for j in range(mat.shape[0]):
-        res.append(mat[j][i])
-    return res
+# 本地文件方式
+def capture_file(path: str):
+  global detected, result
+  result = []
+  img = cv2.imread(path)
+  if img is None:
+    return
+  # 先做一次人脸检测，但不渲染结果图
+  (_, _, detected, faces) = FD.detect_face_for_manager(img.copy(), rect_width=int(img.shape[0] / 80) + 1)
+  # 开始识别过程
+  my_mask = []
+  member_comes = []
+  for face in detected:
+    embedding = helper.get_embedding(convert_gray_to_bgr_use_img(face))
+    name, mindis, origin_face = helper.get_best_fit(embedding)
+    if mindis >= IGNORE_THRESHOLD:
+      my_mask.append(False)
+    else:
+      my_mask.append(True)
+      member_comes.append([name, mindis])
+  # 画框
+  for i in range(len(my_mask)):
+    if my_mask[i]:
+      (x, y, w, h) = faces[i]
+      img = cv2.rectangle(img, (x, y), (x + w, y + h), (255, 0, 0), int(img.shape[0] / 80) + 1)
+  # 渲染到GUI
+  if img.shape[0] > img.shape[1]:
+    target_size = (int(640. / img.shape[0] * img.shape[1]), 640)
+  else:
+    target_size = (640, int(640. / img.shape[1] * img.shape[0]))
+  res = cv2.resize(img, target_size)
+  res = cv2.cvtColor(res, cv2.COLOR_BGR2RGBA)
+  res_pil = PIL.Image.fromarray(res)
+  res_tk = ImageTk.PhotoImage(image=res_pil)
+  display_area.imgtk = res_tk
+  display_area.config(image=res_tk, width=res.shape[1], height=res.shape[0])
+  # 弹窗显示结果
+  total_member_count = len(helper.faces)
+  come_member_count = len(member_comes)
+  attendence_rate = come_member_count / float(total_member_count)  # 出勤率
+  top_window = Toplevel()
+  top_window.title('考勤结果')
+  to_disp = '到场人数：' + str(come_member_count) + '\n总人数：' + str(total_member_count) + '\n出勤率：' + str(
+    attendence_rate * 100)[0:6] + '%\n' + '到场学生：\n'
+  for (name, _) in member_comes:
+    to_disp += '\t'
+    to_disp += name
+    to_disp += '\t\n'
+  Label(top_window, {'text': to_disp, 'font': '宋体 13', 'justify': LEFT}).pack({'side': LEFT})
 
-  global lower_dimension_raw_mat, transform_base
-  # 组织初始数据矩阵 47X10000
-  face_file_list = os.listdir('./face/square_gray')
-  raw_mat = []
-  for face_file in face_file_list:
-    image = cv2.imread(os.path.join('./face/square_gray', face_file), cv2.IMREAD_GRAYSCALE)
-    raw_mat.append(flatten_mat_by_col(image))
-  # 训练之
-  start_time = time.time()
-  print("Start training...")
-  lower_dimension_raw_mat, transform_base = FR.PCA(raw_mat, N_FEATURE)
-  end_time = time.time()
-  print("End training... Used time = " + str((end_time - start_time) / (1000 * 60)) + " min.")
-  print("Saving...")
 
-  f1 = open('lower_d.pkl', 'wb')
-  pickle.dump(lower_dimension_raw_mat, f1)
-  f1.close()
-  f1 = open('t_base.pkl', 'wb')
-  pickle.dump(transform_base, f1)
-  f1.close()
+def ask_open_file():
+  path = filedialog.askopenfilename(title='打开图片...', filetypes=[('JPG Image', '*.jpg'), ('PNG Image', '*.png')])
+  capture_file(path)
 
-  print("Dump OK...")
 
-trian()
+def init():
+  def data_loaded_callback():
+    display_area.config({'width': 100, 'height': 30, 'text': '初始化完成，请载入图片...', 'font': '黑体 16'})
+    btn_start.config({'state': NORMAL})
+
+  global helper
+  helper = FaceNetWrap(data_loaded_callback)
+
+
+root = Tk()
+root.title("人脸识别考勤系统主程序 - [SEU-PR]R.YY, Z.HF & Z.X")
+Label(root, {'text': '人脸识别考勤系统主程序 - [SEU-PR]', 'font': '宋体 16'}).pack()
+display_area = Label(root, {'width': 100, 'height': 30, 'text': '正在初始化数据...', 'font': '黑体 16'})
+display_area.pack()
+btn_start = Button(root, {'text': '从本地图片录入', 'command': ask_open_file, 'state': DISABLED})
+btn_start.pack({'side': LEFT})
+
+root.after(1000, init)
+root.mainloop()

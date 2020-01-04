@@ -3,3 +3,8 @@
 /face/
 /test/
 /__pycache__/
+/dataset/classroom/
+/model/.keras-facenet/
+/dataset/test/
+/dataset/train/
+/dataset/test2/
