@@ -2,7 +2,7 @@
 
 本项目为东南大学《模式识别》课程大作业。利用Haar分类器完成人脸检测、分割；利用FaceNet网络完成人脸识别。
 
-<img src="https://s2.ax1x.com/2020/01/05/l0X7WD.png" alt="demo" style="zoom:50%;" />
+<img src="https://s2.ax1x.com/2020/01/05/l0jcAP.png" alt="demo" />
 
 ## 开始
 
