@@ -12,7 +12,7 @@
 
    - numpy
 
-   - keras-facenet（见https://pypi.org/project/keras-facenet/）
+   - keras-facenet（见 https://pypi.org/project/keras-facenet/ ）
 
    - Keras
 
